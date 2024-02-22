@@ -1,22 +1,11 @@
 import fastify from 'fastify'
-import { knex } from './database'
 import { env } from './env'
+import { transactionsRoutes } from './routes/transactions'
 
 const server = fastify()
 
-server.get('/agoravai', async () => {
-  const transactions = await knex('transactions')
-    // .insert({
-    //   id: randomUUID(),
-    //   title: 'Testing...',
-    //   amount: 9999,
-    // })
-    // .returning('*')
-    .where('amount', 999)
-    .select('*')
-
-  return transactions
-})
+// The plugins order is important!
+server.register(transactionsRoutes)
 
 server
   .listen({
