@@ -1,5 +1,6 @@
 import fastify from 'fastify'
 import { knex } from './database'
+import { env } from './env'
 
 const server = fastify()
 
@@ -19,7 +20,7 @@ server.get('/agoravai', async () => {
 
 server
   .listen({
-    port: 3333,
+    port: env.PORT,
   })
   .then(() => {
     console.log('It is a live!!!')
