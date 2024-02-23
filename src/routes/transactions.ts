@@ -6,12 +6,14 @@ import { knex } from '../database'
 // Use "zod" to validate the request.body and make sure of what we are receiving from the FE.
 // If the FE is sending a right request.body.
 export async function transactionsRoutes(server: FastifyInstance) {
+  // The users should be able to list all transactions that already happened;
   server.get('/', async () => {
     const transactions = await knex('transactions').select()
 
     return { transactions }
   })
 
+  // The users should be able to visualize a unique transaction;
   server.get('/:id', async (request) => {
     const getTransactionParamsSchema = z.object({
       id: z.string().uuid(),
@@ -25,6 +27,16 @@ export async function transactionsRoutes(server: FastifyInstance) {
     return { transaction }
   })
 
+  server.get('/summary', async () => {
+    const summary = await knex('transactions')
+      .sum('amount', { as: 'amount' })
+      .first()
+
+    return { summary }
+  })
+
+  // The users should be able to create a new transaction;
+  // The transaction could be as a credit type (will sum up the total value), or as a debit type;
   // reply = response
   server.post('/', async (request, reply) => {
     const createTransactionBodySchema = z.object({
