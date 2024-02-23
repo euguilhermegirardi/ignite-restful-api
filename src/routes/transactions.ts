@@ -9,6 +9,12 @@ import { checkSessionIdExists } from '../middlewares/check-sessionId-exists'
 // Use "zod" to validate the request.body and make sure of what we are receiving from the FE.
 // If the FE is sending a right request.body.
 export async function transactionsRoutes(server: FastifyInstance) {
+  // instead of doing this:
+  // server.get('/', {preHandler: [checkSessionIdExists] }, async (request) => {})
+  // for every single route we can add the "addHook", as a global middleware for all routes...
+  // but it will work only for this plugin "transactionsRoutes"
+  // server.addHook('preHandler', async (request, reply) => {})
+
   // The users should be able to list all transactions that already happened;
   server.get(
     '/',
