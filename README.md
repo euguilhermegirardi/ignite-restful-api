@@ -6,7 +6,7 @@
 
 # BR - Business Rules
 - [x] The transaction could be as a credit type (will sum up the total value), or as a debit type;
-- [ ] It should be possible to identify the user between transactions;
+- [x] It should be possible to identify the user between transactions;
 - [ ] The users will be able to visualize their own transactions;
 
 # NFR - Not-Functional Requests

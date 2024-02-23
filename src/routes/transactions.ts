@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { knex } from '../database'
+import { checkSessionIdExists } from '../middlewares/check-sessionId-exists'
 
 // Cookies <==> Ways to keep context between the requests
 
@@ -9,37 +10,66 @@ import { knex } from '../database'
 // If the FE is sending a right request.body.
 export async function transactionsRoutes(server: FastifyInstance) {
   // The users should be able to list all transactions that already happened;
-  server.get('/', async () => {
-    const transactions = await knex('transactions').select()
+  server.get(
+    '/',
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (request) => {
+      const { sessionId } = request.cookies
 
-    return { transactions }
-  })
+      const transactions = await knex('transactions')
+        .where('session_id', sessionId)
+        .select()
+
+      return { transactions }
+    },
+  )
 
   // The users should be able to visualize a unique transaction;
-  server.get('/:id', async (request) => {
-    const getTransactionParamsSchema = z.object({
-      id: z.string().uuid(),
-    })
+  server.get(
+    '/:id',
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (request) => {
+      const getTransactionParamsSchema = z.object({ id: z.string().uuid() })
+      const { id } = getTransactionParamsSchema.parse(request.params)
+      const { sessionId } = request.cookies
 
-    const { id } = getTransactionParamsSchema.parse(request.params)
+      // .first() = if I don't use it, "transaction" would be an array
+      const transaction = await knex('transactions')
+        .where({
+          session_id: sessionId,
+          id,
+        })
+        .first()
 
-    // .first() = if I don't use it, "transaction" would be an array
-    const transaction = await knex('transactions').where('id', id).first()
-
-    return { transaction }
-  })
+      return { transaction }
+    },
+  )
 
   // The users should be able to generate a resume of their bank account (transactions total value);
-  server.get('/summary', async () => {
-    const summary = await knex('transactions')
-      .sum('amount', { as: 'amount' })
-      .first()
+  server.get(
+    '/summary',
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (request) => {
+      const { sessionId } = request.cookies
 
-    return { summary }
-  })
+      const summary = await knex('transactions')
+        .where({
+          session_id: sessionId,
+        })
+        .sum('amount', { as: 'amount' })
+        .first()
+
+      return { summary }
+    },
+  )
 
   // The users should be able to create a new transaction;
-  // The transaction could be as a credit type (will sum up the total value), or as a debit type;
   // reply = response
   server.post('/', async (request, reply) => {
     const createTransactionBodySchema = z.object({
@@ -54,6 +84,7 @@ export async function transactionsRoutes(server: FastifyInstance) {
       request.body,
     )
 
+    // It should be possible to identify the user between transactions;
     let sessionId = request.cookies.sessionId
 
     if (!sessionId) {
@@ -68,6 +99,7 @@ export async function transactionsRoutes(server: FastifyInstance) {
     await knex('transactions').insert({
       id: randomUUID(),
       title,
+      // The transaction could be as a credit type (will sum up the total value), or as a debit type;
       amount: type === 'credit' ? amount : amount * -1,
       session_id: sessionId,
     })
