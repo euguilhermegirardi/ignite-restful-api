@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { knex } from '../database'
 
+// Cookies <==> Ways to keep context between the requests
+
 // Use "zod" to validate the request.body and make sure of what we are receiving from the FE.
 // If the FE is sending a right request.body.
 export async function transactionsRoutes(server: FastifyInstance) {
@@ -27,6 +29,7 @@ export async function transactionsRoutes(server: FastifyInstance) {
     return { transaction }
   })
 
+  // The users should be able to generate a resume of their bank account (transactions total value);
   server.get('/summary', async () => {
     const summary = await knex('transactions')
       .sum('amount', { as: 'amount' })
@@ -51,10 +54,22 @@ export async function transactionsRoutes(server: FastifyInstance) {
       request.body,
     )
 
+    let sessionId = request.cookies.sessionId
+
+    if (!sessionId) {
+      sessionId = randomUUID()
+
+      reply.cookie('sessionId', sessionId, {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      })
+    }
+
     await knex('transactions').insert({
       id: randomUUID(),
       title,
       amount: type === 'credit' ? amount : amount * -1,
+      session_id: sessionId,
     })
 
     reply.status(201).send({ message: 'POST - WORKED!' })
