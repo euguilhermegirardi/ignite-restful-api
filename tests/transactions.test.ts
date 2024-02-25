@@ -32,8 +32,6 @@ describe('Transactions routes', () => {
       })
       .expect(201)
 
-    console.log('test')
-
     const cookies = createTransactionResponse.get('Set-Cookie')
 
     const listTransactionsResponse = await request(app.server)
