@@ -1,8 +1,14 @@
-import { it, beforeAll, afterAll, describe, expect } from 'vitest'
+import { it, beforeAll, afterAll, describe, expect, beforeEach } from 'vitest'
 import request from 'supertest'
 import { app } from '../src/app'
+import { execSync } from 'node:child_process'
 
 describe('Transactions routes', () => {
+  beforeEach(() => {
+    execSync('pnpm knex migrate:rollback --all')
+    execSync('pnpm knex migrate:latest')
+  })
+
   beforeAll(async () => {
     await app.ready()
   })
@@ -31,8 +37,6 @@ describe('Transactions routes', () => {
         type: 'credit',
       })
       .expect(201)
-
-    console.log('dasda')
 
     const cookies = createTransactionResponse.get('Set-Cookie')
 
